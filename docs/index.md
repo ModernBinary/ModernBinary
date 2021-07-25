@@ -8,4 +8,4 @@
 <div align="center">
 </div>
 
-* [Calculate and convert characters in modern binary](https://github.com/ModernBinary/ModernBinary/tree/main/docs/translate.md)
+* [Calculate and convert characters in modern binary](https://modernbinary.github.io/ModernBinary/translate)
