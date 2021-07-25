@@ -102,8 +102,11 @@ class Program:
         elif(line.endswith(':( )')):
             line = line.replace(':( )', '')
             self.add_to_output += ' '
-        
+
         matches = re.findall('\\(([^)]+)\\)', line)
+        for index, m in enumerate(matches):
+            matches[index] = m.rstrip().lstrip()
+        del m
 
         if matches[0] == '43':
             _import = self.import_module(matches[1])
