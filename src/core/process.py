@@ -7,10 +7,14 @@ from . import errors
 
 class Program:
     def __init__(self, file, auto_run=True) -> None:
+        
+        self.auto_run = auto_run
 
         self.__modernbinary_path = str(pathlib.Path(__file__).resolve().parent)
 
         self.__userpath = os.getcwd()
+
+        self.data = []
 
         self.process_cache = []
 
@@ -21,20 +25,26 @@ class Program:
         self.imported_modules = []
 
         self.add_to_output = ''
-
-        with open(file, 'r+') as main:
-            self.data = main.read().splitlines()
-            del main
         
         if auto_run:
+            with open(file, 'r+') as main:
+                self.data = main.read().splitlines()
+                del main
+                
             for line in self.data:
                 self.run_line(line)
 
     def run_line(self, line):
-        line = self.comment_checkup(line)
-        if not line:
-            return
-        self.command_regex_search(line)
+        try:
+            line = self.comment_checkup(line)
+            if not line:
+                return errors.NotLinePass
+            to_return = self.command_regex_search(line)
+            if not self.auto_run:
+                self.data.append(line)
+            return to_return
+        except:
+            return errors.MBSyntaxError
 
     def comment_checkup(self, line):
         if(line.rstrip() == ''):
@@ -141,7 +151,8 @@ class Program:
                 str(matches[0]),
                 str(self.data.index(line)+1)
             ))
-            sys.exit(1)
+            if self.auto_run:
+                sys.exit(1)
         
         returnval = ''
         exec('returnval = {}({}+"{}")'.format(
