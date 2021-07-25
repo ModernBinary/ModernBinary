@@ -14,15 +14,12 @@
 - Powerful: Modern binary has ready-made libraries and commands, and like binary you don't need to define everything.
 - Convert simple English commands to binary modern
 
-## Examples :
-#### * Hello, World !
+## Hello, World !
 
 ```bat
-(112)=(72 202 324 432 555 192 609 888 1026 1080 1100)
+(112)=( 72 202 324 432 555 192 609 888 1026 1080 1100 )
 ```
+* [Small and other examples of ModernBinary are in the tests folder.](https://github.com/ModernBinary/ModernBinary/tree/main/tests)
 
-#### * Define and print `text` variable
-```bat
-(118:(116 202 360 464))=(72 202 324 432 555 192 609 888 1026 1080 1100)
-(112)=( [[116 202 360 464]] )
-```
+## Documentation
+All documentation is in the "docs" directory and online at https://modernbinary.github.io/ModernBinary/.
