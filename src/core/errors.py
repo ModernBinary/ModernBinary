@@ -1,0 +1,2 @@
+class ModuleDoesNotExist:
+    pass
