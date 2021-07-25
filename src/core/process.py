@@ -1,16 +1,24 @@
+import os
+import pathlib
 import re
 import sys
-from . import linematches
-from . import convert
+from . import linematches, convert
+from . import errors
 
 class Program:
     def __init__(self, file) -> None:
+
+        self.__modernbinary_path = str(pathlib.Path(__file__).resolve().parent)
+
+        self.__userpath = os.getcwd()
 
         self.process_cache = []
 
         self.variables = {}
 
         self.exec_loc = {}
+
+        self.imported_modules = []
 
         self.add_to_output = ''
 
@@ -41,6 +49,35 @@ class Program:
             convert.totext(mb_format)+add
         )
 
+    def is_module_exist(self, module_name):
+        module_name = convert.totext(module_name)
+        for r, d, f in os.walk(os.path.join(self.__modernbinary_path, '..', 'libs')):
+            for module in f:
+                if module.lower() == (module_name+'.mb').lower():
+                    return {
+                        'result': True,
+                        'type': 'built-in',
+                        'path': os.path.join(r, module)
+                    }
+        for r, d, f in os.walk(os.path.join(self.__userpath)):
+            for module in f:
+                if module.lower() == (module_name+'.mb').lower():
+                    return {
+                        'result': True,
+                        'type': 'file',
+                        'path': os.path.join(r, module)
+                    }
+        return {
+            'result': False
+        }
+
+    def import_module(self, module_name):
+        load_module = self.is_module_exist(module_name)
+        if not load_module['result']:
+            return errors.ModuleDoesNotExist
+        self.imported_modules.append(load_module)
+        return load_module
+
     def command_regex_search(self, line):
         if not re.search('\\(([^)]+)\\)', line):
             return
@@ -53,6 +90,23 @@ class Program:
             self.add_to_output += ' '
         
         matches = re.findall('\\(([^)]+)\\)', line)
+
+        if matches[0] == '43':
+            _import = self.import_module(matches[1])
+            if _import == errors.ModuleDoesNotExist:
+                print('[ImportError] Module does not exist on line '+str(
+                    self.data.index(line)+1
+                ))
+                sys.exit(0)
+            with open(_import['path'], 'r+') as module_data:
+                module_data = module_data.read()
+            after_import_index = self.data.index(line)+1
+            for line in module_data.splitlines()[::-1]:
+                self.data.insert(
+                    after_import_index,
+                    line
+                )
+            return
 
         if '118:' in matches[0]:
             to_define = matches[1]

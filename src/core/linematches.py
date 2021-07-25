@@ -12,7 +12,7 @@ BASE = {
         'argsfrommatches': ['1'],
         'argvs':[],
         'kwargs':{}
-        },
+        }
 }
 
 def get(code):
