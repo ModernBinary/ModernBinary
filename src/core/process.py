@@ -6,7 +6,7 @@ from . import linematches, convert
 from . import errors
 
 class Program:
-    def __init__(self, file) -> None:
+    def __init__(self, file, auto_run=True) -> None:
 
         self.__modernbinary_path = str(pathlib.Path(__file__).resolve().parent)
 
@@ -26,11 +26,15 @@ class Program:
             self.data = main.read().splitlines()
             del main
         
-        for line in self.data:
-            line = self.comment_checkup(line)
-            if not line:
-                continue
-            self.command_regex_search(line)
+        if auto_run:
+            for line in self.data:
+                self.run_line(line)
+
+    def run_line(self, line):
+        line = self.comment_checkup(line)
+        if not line:
+            return
+        self.command_regex_search(line)
 
     def comment_checkup(self, line):
         if(line.rstrip() == ''):
