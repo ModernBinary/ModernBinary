@@ -14,6 +14,12 @@ class Program:
 
         self.__userpath = os.getcwd()
 
+        self.collecting_function = False
+
+        self.active_function_to_collect = ''
+
+        self.functions = {}
+
         self.data = []
 
         self.process_cache = []
@@ -35,7 +41,6 @@ class Program:
                 self.run_line(line)
 
     def run_line(self, line):
-        try:
             line = self.comment_checkup(line)
             if not line:
                 return errors.NotLinePass
@@ -43,8 +48,6 @@ class Program:
             if not self.auto_run:
                 self.data.append(line)
             return to_return
-        except:
-            return errors.MBSyntaxError
 
     def comment_checkup(self, line):
         if(line.rstrip() == ''):
@@ -93,6 +96,11 @@ class Program:
         return load_module
 
     def command_regex_search(self, line):
+        if line.endswith('}') or line == '}':
+            if self.collecting_function:
+                self.collecting_function = False
+            return errors.MBSyntaxError
+    
         if not re.search('\\(([^)]+)\\)', line):
             return
 
@@ -107,6 +115,24 @@ class Program:
         for index, m in enumerate(matches):
             matches[index] = m.rstrip().lstrip()
         del m
+
+        if(matches[0].startswith('[') and matches[0].endswith(']')):
+            try:
+                function_commands = self.functions[
+                    convert.totext(matches[0].replace('[', '').replace(']', ''))
+                ]
+                after_import_index = self.data.index(line)+1
+                for function_line in function_commands[::-1]:
+                    self.data.insert(
+                        after_import_index,
+                        function_line
+                    )
+                return
+            except:
+                return errors.MBSyntaxError
+
+        if self.collecting_function:
+            return self.functions[self.active_function_to_collect].append(line.rstrip().lstrip())
 
         if matches[0] == '43':
             _import = self.import_module(matches[1])
@@ -139,6 +165,18 @@ class Program:
                 matches[0].split(':(')[-1],
                 to_define
             )
+
+        if '102:' in matches[0]:
+            self.active_function_to_collect = convert.totext(
+                matches[0].split(':(')[1]
+            )
+
+            if line.endswith('{'):
+                self.functions[self.active_function_to_collect] = []
+                self.collecting_function = True
+                return # To collect function
+
+            sys.exit(1)
         
         stripped_firstmatch = matches[1].rstrip().lstrip()
         if stripped_firstmatch.startswith('[[') and stripped_firstmatch.endswith(']]'):
