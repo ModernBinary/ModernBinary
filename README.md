@@ -1,6 +1,6 @@
 <div align="center">
 <p>
-    <img style="border-radius: 10px;" width="640" src="https://github.com/ThisIsMatin/ModernBinary/blob/main/dist/ModernBinary-Banner.png?raw=true">
+    <img width="512" src="https://github.com/ThisIsMatin/ModernBinary/blob/main/dist/logo.png?raw=true">
 </p>
 <h1>Modern Binary</h1>
 <h4>Fun, fast, safe, programming language for developers interested in algorithmic languages and binary.</h4>
