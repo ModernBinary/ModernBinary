@@ -12,3 +12,4 @@
 * [Calculate and convert characters in modern binary](https://modernbinary.github.io/ModernBinary/translate)
 * [Defining a variable](https://modernbinary.github.io/ModernBinary/define-variable)
 * [Getting Input](https://modernbinary.github.io/ModernBinary/get-input)
+* [IF / Condition](https://modernbinary.github.io/ModernBinary/if)
