@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html class="js" lang="en-US">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link type="text/css" media="all" href="/style.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <meta property="og:title" content="ModernBinary Code Playground">
+    <meta property="og:description" content="Code playground to online execute code in ModernBinary language.">
+    <meta property="og:image" content="https://github.com/ModernBinary/ModernBinary/blob/main/dist/logo.png?raw=true">
+    <meta property="og:url" content="https://github.com/ModernBinary/ModernBinary">
+    <title>ModernBinary | Code Playground</title>
+  </head>
+  <body class="home page-template page-template-page-templates page-template-wide page-template-page-templateswide-php page page-id-19 wp-embed-responsive no-sidebar header-wide menu-right singular thumbnail-before-header">
+    <header id="header" class="header" role="banner">
+      <div class="header-inner container">
+        <div class="branding">
+          <div class="site-name">
+            <div class="site-title">
+              <img src="/logomini.png" alt="" style="width: 38px;"><a href="https://github.com/ModernBinary/ModernBinary" style="padding-left: 15px;">Code PlayGround</a>
+            </div>
+          </div>
+        </div>
+        <nav id="nav" class="nav" aria-label="Primary Navigation" role="navigation">
+          <ul id="primary-menu" class="menu" aria-expanded="false">
+            <li id="menu-item-23" class="menu-item menu-item-type-custom menu-item-object-custom current-menu-item current_page_item menu-item-home menu-item-23">
+              <a href="https://github.com/ModernBinary/ModernBinary" aria-current="page">View on github</a>
+            </li>
+            <li id="menu-item-22" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-472">
+              <a href="https://github.com/ModernBinary/ModernBinary/issues/new" aria-current="page">Report new issue</a>
+            </li>
+          </ul>
+        </nav>
+        <button id="menu-toggle" class="menu-toggle header-icon" aria-controls="primary-menu" aria-expanded="false">
+          <span class="screen-reader-text">Menu</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="icon">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="content container" id="content">
+      <p style="text-align: center;">
+        <br>
+        <img src="/logo.png" alt="" style="width: 100px;"><br>
+        <strong>Welcome to the ModernBinary language code playground.</strong><br>Here you can execute your code online in ModernBinary language
+      </p>
+      <div class="align-center"></div>
+      <div class="wrapper">
+        <div class="box clearfix">
+          <!-- <span class="switch right">
+            <input type="checkbox" id="isWrap" checked="">
+            <label for="isWrap">Wrap lines</label>
+          </span> -->
+          <div class="form-group left w-100">
+            <div class="container">
+              <textarea spellcheck="false" id="input" class="w-100 form-control" style="width: 100%; height: 320px;" placeholder="(112)=( 72 202 324 432 555 192 609 888 1026 1080 1100 )"></textarea>
+            </div>
+          </div>
+          <div class="align-center">
+            <button onclick="RunCode(1)" id="run" class="btn min-wid" type="button">Run</button><br>
+            <button onclick="RunCode(2)" id="texttomb" style="background: #3c315d; margin-top: 10px;" class="btn min-wid" type="button">Text To ModernBinary</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer" role="contentinfo">
+      <div class="site-info">Copyright © 2021 ModernBinary Programming Language.</div>
+    </footer>
+  
+  <script>
+    function RunCode(ctype){
+      if(ctype == 1){
+        var runbtn = document.getElementById("run");
+      }else{
+        var runbtn = document.getElementById("texttomb");
+      }
+      runbtn.innerHTML = 'Loading...'
+      runbtn.disabled = true;
+      if(ctype == 1){
+      var value = document.getElementById('input').value;
+      }else{
+          var value = prompt('Enter your text : ');
+      }
+      $.post('https://modernbinary.server-me.ir/runcode.php', {code:value, type:ctype}).done(function(data){
+        runbtn.disabled = false;
+        if(ctype == 1){
+        runbtn.innerHTML = 'Run';
+        }else{
+        runbtn.innerHTML = 'Text To ModernBinary';
+        }
+        if(data == '' || data == null){
+          return alert('Output is null');
+        }
+        alert(data);
+    }).error(function(data){
+        alert('An error occurred');
+        runbtn.disabled = false;
+        runbtn.innerHTML = 'Run';
+    });
+    }
+  </script>
+</body></html>
