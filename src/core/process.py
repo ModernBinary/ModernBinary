@@ -188,14 +188,14 @@ class Program:
             if re.search('\[(.*?:.*?)\]', matches[1]):
                 matches_in_var = re.findall('\[(.*?:.*?)\]', matches[1])[0].split(':')
                 to_define = self.command_regex_search('({})=({})'.format(
-                    str(matches_in_var[0]),
-                    str(matches_in_var[1])
+                    str(matches_in_var[0]).lstrip().rstrip(),
+                    str(matches_in_var[1]).lstrip().rstrip()
                 ))
                 to_define = ' ' if to_define == '' else to_define
                 to_define = convert.tomb(to_define)
             return self.define(
-                matches[0].split(':(')[-1],
-                to_define
+                matches[0].split(':(')[-1].rstrip().lstrip(),
+                to_define.lstrip().rstrip()
             )
 
         if('105 204:(' in matches[0]):
@@ -243,9 +243,9 @@ class Program:
         
         stripped_firstmatch = matches[1].rstrip().lstrip()
         if stripped_firstmatch.startswith('[[') and stripped_firstmatch.endswith(']]'):
-            matches_cache = matches[1]
+            matches_cache = matches[1].rstrip().lstrip()
             matches[1] = convert.tomb(self.variables[convert.totext(
-                stripped_firstmatch.replace(']]', '').replace('[[', '')
+                stripped_firstmatch.replace(']]', '').replace('[[', '').rstrip().lstrip()
             )])
             line = line.replace(matches_cache, matches[1])
 
