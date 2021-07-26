@@ -6,3 +6,9 @@ class NotLinePass:
 
 class MBSyntaxError:
     pass
+
+class UnDefineError:
+    pass
+
+class ConditionError:
+    pass
