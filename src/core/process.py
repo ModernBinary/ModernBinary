@@ -53,7 +53,8 @@ class Program:
                         print('['+str(
                             [i for i,j in errors_list.items()][list(errors_list.values()).index(r)]
                         )+'] on line '+str(self.data.index(line)+1))
-                        sys.exit(1)
+                        if self.auto_run:
+                            sys.exit(1)
 
     def run_line(self, line):
             line = self.comment_checkup(line)
@@ -171,10 +172,7 @@ class Program:
         if matches[0] == '43':
             _import = self.import_module(matches[1])
             if _import == errors.ModuleDoesNotExist:
-                print('[ImportError] Module does not exist on line '+str(
-                    self.data.index(line)+1
-                ))
-                sys.exit(0)
+                return errors.ModuleImportError
             with open(_import['path'], 'r+') as module_data:
                 module_data = module_data.read()
             after_import_index = self.data.index(line)+1
@@ -253,12 +251,7 @@ class Program:
 
         code_info = linematches.get(matches[0])
         if not code_info:
-            print('[UnknownCommand] Command code {} is not defined on line {}'.format(
-                str(matches[0]),
-                str(self.data.index(line)+1)
-            ))
-            if self.auto_run:
-                sys.exit(1)
+            return errors.UnknownCommand
         
         returnval = ''
         exec('returnval = {}({}+"{}")'.format(
