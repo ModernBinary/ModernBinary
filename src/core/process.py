@@ -16,7 +16,15 @@ class Program:
 
         self.collecting_function = False
 
+        self.collecting_condition = False
+
         self.active_function_to_collect = ''
+
+        self.active_condition_eval = ''
+
+        self.active_condition_to_collect = ''
+
+        self.conditions = {}
 
         self.functions = {}
 
@@ -38,12 +46,19 @@ class Program:
                 del main
                 
             for line in self.data:
-                self.run_line(line)
+                r = self.run_line(line)
+                if r:
+                    errors_list = {cl:eval('errors.'+cl) for cl in dir(errors)}
+                    if r in [j for i,j in errors_list.items()]:
+                        print('['+str(
+                            [i for i,j in errors_list.items()][list(errors_list.values()).index(r)]
+                        )+'] on line '+str(self.data.index(line)+1))
+                        sys.exit(1)
 
     def run_line(self, line):
             line = self.comment_checkup(line)
             if not line:
-                return errors.NotLinePass
+                return
             to_return = self.command_regex_search(line)
             if not self.auto_run:
                 self.data.append(line)
@@ -95,11 +110,27 @@ class Program:
         self.imported_modules.append(load_module)
         return load_module
 
+    def strip_list(self, _list):
+        for i, v in enumerate(_list):
+            if(type(v) == str):
+                _list[i] = str(v).rstrip().lstrip()
+        return _list
+
     def command_regex_search(self, line):
         if line.endswith('}') or line == '}':
             if self.collecting_function:
                 self.collecting_function = False
-            return errors.MBSyntaxError
+            elif self.collecting_condition:
+                self.collecting_condition = False
+                if eval(self.active_condition_eval):
+                    after_conditionend_index = self.data.index(line)+1
+                    for condition_line in self.conditions[self.active_condition_to_collect]['lines'][::-1]:
+                        self.data.insert(
+                            after_conditionend_index,
+                            condition_line
+                        )
+            else:
+                return errors.MBSyntaxError
     
         if not re.search('\\(([^)]+)\\)', line):
             return
@@ -133,6 +164,9 @@ class Program:
 
         if self.collecting_function:
             return self.functions[self.active_function_to_collect].append(line.rstrip().lstrip())
+            
+        elif self.collecting_condition:
+            return self.conditions[self.active_condition_to_collect]['lines'].append(line.rstrip().lstrip())
 
         if matches[0] == '43':
             _import = self.import_module(matches[1])
@@ -165,6 +199,37 @@ class Program:
                 matches[0].split(':(')[-1],
                 to_define
             )
+
+        if('105 204:(' in matches[0]):
+            condition = matches[0].split(':(')[1]
+            is_true, condition_op = False, ''
+            for op in linematches.OPERATORS:
+                if op in condition:
+                    is_true = True
+                    condition_op = op
+                    continue
+            if not is_true:
+                return errors.MBSyntaxError
+            condition_split = self.strip_list(condition.split(condition_op))
+            
+            cond_to_eval = []
+
+            for obj in condition_split:
+                if obj.startswith('[[') and obj.endswith(']]'):
+                    cvt = convert.totext(str(obj.replace('[[', '').replace(']]', '').rstrip().lstrip()))
+                    if(cvt in self.variables):
+                        cond_to_eval.append('"{}"'.format(self.variables[cvt]))
+                    else:
+                        return errors.UnDefineError
+                else:
+                    return errors.ConditionError
+            self.active_condition_to_collect = condition
+            self.conditions[condition] = {
+                'lines': []
+            }
+            self.collecting_condition = True
+            self.active_condition_eval = condition_op.join(cond_to_eval)
+            return
 
         if '102:' in matches[0]:
             self.active_function_to_collect = convert.totext(
