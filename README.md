@@ -12,7 +12,7 @@
 
 - Mentally computable : Modern binary algorithms don't have a complex algorithm and its commands are easy to calculate.
 - Powerful: Modern binary has ready-made libraries and commands, and like binary you don't need to define everything.
-- Convert simple English commands to binary modern
+- Convert simple English commands to ModernBinary
 
 ## Hello, World !
 
@@ -23,3 +23,6 @@
 
 ## Documentation
 All documentation is in the "docs" directory and online at https://modernbinary.github.io/ModernBinary/.
+
+## Online code playground
+You can execute ModernBinary code online and convert characters to ModernBinary. You can use playground at https://modernbinary.github.io/ModernBinary/playground/
