@@ -16,12 +16,6 @@ class Program:
 
         self.collecting_condition = False
 
-        self.active_condition_eval = ''
-
-        self.active_condition_to_collect = ''
-
-        self.conditions = {}
-
         self.functions = {}
 
         self.data = []
@@ -176,6 +170,8 @@ class Program:
                 matches[0].split(':(')[-1].rstrip().lstrip(),
                 to_define.lstrip().rstrip()
             )
+        
+        # Start Condition Checking
 
         if('105 204:(' in matches[0]):
             condition = matches[0].split(':(')[1]
@@ -200,12 +196,20 @@ class Program:
                         return errors.UnDefineError
                 else:
                     return errors.ConditionError
-            self.active_condition_to_collect = condition
-            self.conditions[condition] = {
-                'lines': []
-            }
-            self.collecting_condition = True
-            self.active_condition_eval = condition_op.join(cond_to_eval)
+            condition_lines = []
+            self.line_on_check += 1
+            try:
+                while self.data[self.line_on_check].rstrip().lstrip() != '}':
+                    condition_lines.append(self.data[self.line_on_check].rstrip().lstrip())
+                    self.line_on_check += 1
+            except:
+                return errors.MBSyntaxError
+            if eval(condition_op.join(cond_to_eval)):
+                for condition_line in condition_lines[::-1]:
+                    self.data.insert(
+                        self.line_on_check+1,
+                        condition_line
+                    )
             return
 
         # Start Function Checking
