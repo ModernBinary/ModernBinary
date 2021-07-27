@@ -2,3 +2,4 @@
 * text=auto
 *.mb linguist-language=Batchfile
 *.py linguist-language=C
+process.py linguist-language=Python
