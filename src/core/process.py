@@ -119,8 +119,12 @@ class Program:
         if line == '':
             line = ' '
 
-        elif(line.endswith(':( )')):
-            line = line.replace(':( )', '')
+        elif(line.endswith('::()')):
+            line = line.replace('::()' , '')
+            self.add_to_output += '\\n'
+
+        elif(line.endswith(':()')):
+            line = line.replace(':()', '')
             self.add_to_output += ' '
 
         matches = re.findall('\\(([^)]+)\\)', line)
