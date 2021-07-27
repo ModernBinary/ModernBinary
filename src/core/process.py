@@ -14,11 +14,7 @@ class Program:
 
         self.__userpath = os.getcwd()
 
-        self.collecting_function = False
-
         self.collecting_condition = False
-
-        self.active_function_to_collect = ''
 
         self.active_condition_eval = ''
 
@@ -44,9 +40,13 @@ class Program:
             with open(file, 'r+') as main:
                 self.data = main.read().splitlines()
                 del main
-                
-            for line in self.data:
+            
+            self.line_on_check = 0
+
+            while self.line_on_check < len(self.data):
+                line = self.data[self.line_on_check]
                 r = self.run_line(line)
+                self.line_on_check += 1
                 if r:
                     errors_list = {cl:eval('errors.'+cl) for cl in dir(errors)}
                     if r in [j for i,j in errors_list.items()]:
@@ -118,20 +118,6 @@ class Program:
         return _list
 
     def command_regex_search(self, line):
-        if line.endswith('}') or line == '}':
-            if self.collecting_function:
-                self.collecting_function = False
-            elif self.collecting_condition:
-                self.collecting_condition = False
-                if eval(self.active_condition_eval):
-                    after_conditionend_index = self.data.index(line)+1
-                    for condition_line in self.conditions[self.active_condition_to_collect]['lines'][::-1]:
-                        self.data.insert(
-                            after_conditionend_index,
-                            condition_line
-                        )
-            else:
-                return errors.MBSyntaxError
     
         if not re.search('\\(([^)]+)\\)', line):
             return
@@ -153,21 +139,14 @@ class Program:
                 function_commands = self.functions[
                     convert.totext(matches[0].replace('[', '').replace(']', ''))
                 ]
-                after_import_index = self.data.index(line)+1
                 for function_line in function_commands[::-1]:
                     self.data.insert(
-                        after_import_index,
+                        self.line_on_check+1,
                         function_line
                     )
                 return
             except:
                 return errors.MBSyntaxError
-
-        if self.collecting_function:
-            return self.functions[self.active_function_to_collect].append(line.rstrip().lstrip())
-            
-        elif self.collecting_condition:
-            return self.conditions[self.active_condition_to_collect]['lines'].append(line.rstrip().lstrip())
 
         if matches[0] == '43':
             _import = self.import_module(matches[1])
@@ -229,18 +208,23 @@ class Program:
             self.active_condition_eval = condition_op.join(cond_to_eval)
             return
 
+        # Start Function Checking
         if '102:' in matches[0]:
-            self.active_function_to_collect = convert.totext(
-                matches[0].split(':(')[1]
-            )
-
             if line.endswith('{'):
-                self.functions[self.active_function_to_collect] = []
-                self.collecting_function = True
-                return # To collect function
+                self.functions[convert.totext(matches[0].split(':(')[1])] = []
+                function_lines = []
+                self.line_on_check += 1
+                try:
+                    while self.data[self.line_on_check].rstrip().lstrip() != '}':
+                        function_lines.append(self.data[self.line_on_check].rstrip().lstrip())
+                        self.line_on_check += 1
+                except:
+                    return errors.MBSyntaxError
+                self.functions[
+                    convert.totext(matches[0].split(':(')[1])
+                ] = function_lines
+                return
 
-            sys.exit(1)
-        
         stripped_firstmatch = matches[1].rstrip().lstrip()
         if stripped_firstmatch.startswith('[[') and stripped_firstmatch.endswith(']]'):
             matches_cache = matches[1].rstrip().lstrip()
