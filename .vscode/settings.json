@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "*.mb": "shellscript",
+        "iostream": "cpp",
+        "array": "cpp",
+        "list": "cpp",
+        "fstream": "cpp",
+        "*.tcc": "cpp"
+    }
+}
