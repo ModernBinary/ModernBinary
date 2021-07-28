@@ -1,11 +1,11 @@
 import sys
 import core
-from core import process, convert, errors
+from core import parser, convert, errors
 
-class Shell(process.Program):
+class Shell(parser.Parser):
     def __init__(self) -> None:
         super().__init__(None, auto_run=False)
-        
+
         print('ModernBinary Shell ['+core.__version__+'] activated.')
 
         while True:

@@ -5,9 +5,9 @@ import sys
 from . import linematches, convert
 from . import errors
 
-class Program:
+class Parser:
     def __init__(self, file, auto_run=True) -> None:
-        
+
         self.auto_run = auto_run
 
         self.__modernbinary_path = str(pathlib.Path(__file__).resolve().parent)
@@ -17,6 +17,8 @@ class Program:
         self.collecting_condition = False
 
         self.functions = {}
+
+        self.function_params = {}
 
         self.data = []
 
@@ -29,12 +31,12 @@ class Program:
         self.imported_modules = []
 
         self.add_to_output = ''
-        
+
         if auto_run:
             with open(file, 'r+') as main:
                 self.data = main.read().splitlines()
                 del main
-            
+
             self.line_on_check = 0
 
             while self.line_on_check < len(self.data):
@@ -113,7 +115,7 @@ class Program:
         return _list
 
     def command_regex_search(self, line):
-    
+
         if not re.search('\\(([^)]+)\\)', line):
             return
 
@@ -135,13 +137,22 @@ class Program:
 
         if(matches[0].startswith('[') and matches[0].endswith(']')):
             try:
+                replace = False
+                funcname = convert.totext(matches[0].replace('[', '').replace(']', ''))
                 function_commands = self.functions[
-                    convert.totext(matches[0].replace('[', '').replace(']', ''))
+                    funcname
                 ]
+                if len(matches) > 1:
+                    params = [i.rstrip().lstrip() for i in matches[1].split(',')]
+                    if len(params) == len(self.function_params[funcname]):
+                        for in_call, in_define in zip(params, self.function_params[funcname]):
+                            replace = True
+                    else:
+                        return errors.MBSyntaxError
                 for function_line in function_commands[::-1]:
                     self.data.insert(
                         self.line_on_check+1,
-                        function_line
+                        function_line if not replace else function_line.replace('[[{}]]'.format(str(in_define)), in_call)
                     )
                 return
             except:
@@ -175,7 +186,7 @@ class Program:
                 matches[0].split(':(')[-1].rstrip().lstrip(),
                 to_define.lstrip().rstrip()
             )
-        
+
         # Start Condition Checking
 
         if('105 204:(' in matches[0]):
@@ -189,7 +200,7 @@ class Program:
             if not is_true:
                 return errors.MBSyntaxError
             condition_split = self.strip_list(condition.split(condition_op))
-            
+
             cond_to_eval = []
 
             for obj in condition_split:
@@ -202,11 +213,20 @@ class Program:
                 else:
                     return errors.ConditionError
             condition_lines = []
+            wait_to_close = 0
             self.line_on_check += 1
             try:
-                while self.data[self.line_on_check].rstrip().lstrip() != '}':
-                    condition_lines.append(self.data[self.line_on_check].rstrip().lstrip())
-                    self.line_on_check += 1
+                while True:
+                    if self.data[self.line_on_check].rstrip().lstrip() != '}':
+                        if '{' in self.data[self.line_on_check]:
+                            wait_to_close += 1
+                        self.line_on_check += 1
+                        condition_lines.append(self.data[self.line_on_check].rstrip().lstrip())
+                    else:
+                        if self.data[self.line_on_check].rstrip().lstrip() == '}' and wait_to_close >= 1:
+                            wait_to_close -= 1
+                            continue
+                        break
             except:
                 return errors.MBSyntaxError
             if eval(condition_op.join(cond_to_eval)):
@@ -215,6 +235,7 @@ class Program:
                         self.line_on_check+1,
                         condition_line
                     )
+            del wait_to_close
             return
 
         # Start Function Checking
@@ -222,11 +243,29 @@ class Program:
             if line.endswith('{'):
                 self.functions[convert.totext(matches[0].split(':(')[1])] = []
                 function_lines = []
+                wait_to_close = 0
                 self.line_on_check += 1
+                self.function_params[convert.totext(matches[0].split(':(')[1])] = []
+                if re.search('\[(.*?)\]', line):
+                    paramstoget = re.findall('\[(.*?)\]', line)[0]
+                    for param in paramstoget.split(','):
+                        if not param:
+                            continue
+                        self.function_params[convert.totext(matches[0].split(':(')[1])].append(
+                            param.rstrip().lstrip()
+                        )
                 try:
-                    while self.data[self.line_on_check].rstrip().lstrip() != '}':
-                        function_lines.append(self.data[self.line_on_check].rstrip().lstrip())
-                        self.line_on_check += 1
+                    while True:
+                        if self.data[self.line_on_check].rstrip().lstrip() != '}':
+                            if '{' in self.data[self.line_on_check]:
+                                wait_to_close += 1
+                            self.line_on_check += 1
+                            function_lines.append(self.data[self.line_on_check].rstrip().lstrip())
+                        else:
+                            if wait_to_close >= 1:
+                                wait_to_close -= 1
+                                continue
+                            break
                 except:
                     return errors.MBSyntaxError
                 self.functions[
@@ -245,7 +284,7 @@ class Program:
         code_info = linematches.get(matches[0])
         if not code_info:
             return errors.UnknownCommand
-        
+
         returnval = ''
         exec('returnval = {}({}+"{}")'.format(
             code_info['c'],
@@ -259,3 +298,5 @@ class Program:
         ), globals(), self.exec_loc)
         self.add_to_output = ''
         return self.exec_loc['returnval']
+
+Program = Parser
