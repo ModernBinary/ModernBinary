@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <sstream>
 #include "core/convert.cpp"
+#include <fstream>
+#include "core/parser.cpp"
 
 using namespace std;
 
@@ -24,6 +26,19 @@ static inline string &rtrim(string &s) {
 
 static inline string &trim(string &s) {
     return ltrim(rtrim(s));
+}
+
+inline bool mbexist(const string& name) {
+    ifstream f(name.c_str());
+    return f.good();
+}
+
+bool hasEnding(string const &fullString, string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -67,6 +82,18 @@ int main(int argc, char *argv[])
         exit(0);
     }else{
         string f_name = all_args[0];
+        if(!hasEnding(f_name, ".mb")){
+            cout<<"[Error] Your file format must be mb."<<endl;
+            exit(0);
+        }else{
+            if(mbexist(f_name)){
+                Parser parser;
+                parser.file = f_name;
+            }else{
+                cout<<"[Error] There is no file named "<<f_name<<"."<<endl;
+                exit(0);
+            }
+        }
     }
     cout<<endl;
 }
