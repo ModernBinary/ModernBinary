@@ -6,11 +6,19 @@
 #include <cctype>
 #include <algorithm>
 #include <sstream>
-#include "core/convert.cpp"
 #include <fstream>
+#include "core/convert.cpp"
 #include "core/parser.cpp"
 
 using namespace std;
+
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
 
 static inline string &ltrim(string &s) {
     s.erase(s.begin(), find_if(s.begin(), s.end(),
@@ -31,14 +39,6 @@ static inline string &trim(string &s) {
 inline bool mbexist(const string& name) {
     ifstream f(name.c_str());
     return f.good();
-}
-
-bool hasEnding(string const &fullString, string const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
 }
 
 int main(int argc, char *argv[])
@@ -87,8 +87,7 @@ int main(int argc, char *argv[])
             exit(0);
         }else{
             if(mbexist(f_name)){
-                Parser parser;
-                parser.file = f_name;
+                Parser parser(f_name);
             }else{
                 cout<<"[Error] There is no file named "<<f_name<<"."<<endl;
                 exit(0);
