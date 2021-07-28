@@ -1,5 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 *.mb linguist-language=Batchfile
-*.py linguist-language=C
-process.py linguist-language=Python
+# Set base of language in future
+*.cpp linguist-language=C++
+*.h linguist-language=C++

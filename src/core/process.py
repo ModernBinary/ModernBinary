@@ -49,6 +49,7 @@ class Program:
                         )+'] on line '+str(self.data.index(line)+1))
                         if self.auto_run:
                             sys.exit(1)
+            print()
 
     def run_line(self, line):
             line = self.comment_checkup(line)
