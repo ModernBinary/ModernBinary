@@ -10,9 +10,9 @@
 Modern binary language has relatively easy and difficult calculations. The characters are originally English characters, but must be written as numbers when executed.
 
 ### How to translate characters into binary modern?
-First need to convert the character numbers to ``ord`` format, respectively. ``(Numbers [1-9] start at 49 in ord, and English letters [a-z] start at 97 ord)``
+First need to convert the character numbers to ``ASCII`` format, respectively. ``(Numbers [1-9] start at 49 in ASCII, and English letters [a-z] start at 97 ASCII)``
 #### Example :
-`hello` Letters in ord format :
+`hello` Letters in ASCII format :
 ```bat
 h ==> 104
 e ==> 101
