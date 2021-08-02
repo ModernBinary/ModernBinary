@@ -6,7 +6,6 @@ OPERATORS = [
 BASE = {
     '112': {
         'c': 'print',
-        'argsfrommatches': ['1'],
         'argvs':[],
         'kwargs':{
             'end': '""'
@@ -14,7 +13,6 @@ BASE = {
         },
     '105': {
         'c': 'input',
-        'argsfrommatches': ['1'],
         'argvs':[],
         'kwargs':{}
         }

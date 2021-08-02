@@ -1,7 +1,0 @@
-# ::() in end of line means '\n'
-
-# Prints `Hello \n`
-(112)=( 72 202 324 432 555 )::()
-
-# Prints `world`
-(112)=( 119 222 342 432 500 )

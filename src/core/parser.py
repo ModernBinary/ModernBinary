@@ -1,302 +1,67 @@
-import os
-import pathlib
-import re
 import sys
-from . import linematches, convert
-from . import errors
+from .lexer import Lexer
+from .linematches import BASE
+from .convert import tomb, totext
+from .errors import (
+    MBSyntaxError, ConditionError, ModuleDoesNotExist,
+    ModuleImportError, UnDefineError, NotLinePass,
+    UnknownCommand
+)
 
 class Parser:
-    def __init__(self, file, auto_run=True) -> None:
+    def __init__(self, file_name) -> None:
+        self.file_name = file_name
+        with open(file_name, 'r+') as file:
+            self.data = file.read()
+        
+        self.lexer = Lexer(self.data)
 
-        self.auto_run = auto_run
+        for lex in self.lexer.get_tokens():
+            try:
+                r = self.basic_parse(lex)
+                if 'errors.' in str(r):
+                    self.show_error(r, lex)
+                exec(r)
+            except Exception as e:
+                self.show_error(MBSyntaxError, lex)
 
-        self.__modernbinary_path = str(pathlib.Path(__file__).resolve().parent)
-
-        self.__userpath = os.getcwd()
-
-        self.collecting_condition = False
-
-        self.functions = {}
-
-        self.function_params = {}
-
-        self.data = []
-
-        self.process_cache = []
-
-        self.variables = {}
-
-        self.exec_loc = {}
-
-        self.imported_modules = []
-
-        self.add_to_output = ''
-
-        if auto_run:
-            with open(file, 'r+') as main:
-                self.data = main.read().splitlines()
-                del main
-
-            self.line_on_check = 0
-
-            while self.line_on_check < len(self.data):
-                line = self.data[self.line_on_check]
-                r = self.run_line(line)
-                self.line_on_check += 1
-                if r:
-                    errors_list = {cl:eval('errors.'+cl) for cl in dir(errors)}
-                    if r in [j for i,j in errors_list.items()]:
-                        print('['+str(
-                            [i for i,j in errors_list.items()][list(errors_list.values()).index(r)]
-                        )+'] on line '+str(self.data.index(line)+1))
-                        if self.auto_run:
-                            sys.exit(1)
-            print()
-
-    def run_line(self, line):
-            line = self.comment_checkup(line)
-            if not line:
-                return
-            to_return = self.command_regex_search(line)
-            if not self.auto_run:
-                self.data.append(line)
-            return to_return
-
-    def comment_checkup(self, line):
-        if(line.rstrip() == ''):
-            return
-        if(line.startswith('#')):
-            return
-        elif('#' in line):
-            return line.split('#')[0].rstrip()
-        return line
-
-    def define(self, key, value):
-        self.variables[convert.totext(key)] = convert.totext(value)
-
-    def add_to_modernbinary(self, mb_format, add=''):
-        return convert.tomb(
-            convert.totext(mb_format)+add
+    def show_error(self, error_class, lexer_object):
+        text = '[ERROR] File "{}", line {}'.format(
+            self.file_name,
+            lexer_object['line']
         )
+        if error_class == UnknownCommand:
+            action = lexer_object['tokens'][0].split(':')[-1]
+            error_class.description = action+' is not defined'
+        text += '\n{}: {}'.format(
+            str(error_class.__name__),
+            error_class.description
+        )
+        print(text)
+        sys.exit(1)
 
-    def is_module_exist(self, module_name):
-        module_name = convert.totext(module_name)
-        for r, d, f in os.walk(os.path.join(self.__modernbinary_path, '..', 'libs')):
-            for module in f:
-                if module.lower() == (module_name+'.mb').lower():
-                    return {
-                        'result': True,
-                        'type': 'built-in',
-                        'path': os.path.join(r, module)
-                    }
-        for r, d, f in os.walk(os.path.join(self.__userpath)):
-            for module in f:
-                if module.lower() == (module_name+'.mb').lower():
-                    return {
-                        'result': True,
-                        'type': 'file',
-                        'path': os.path.join(r, module)
-                    }
-        return {
-            'result': False
-        }
+    def simple_parse_to_exec(self, token):
+        loadbase = BASE[token['action']]
+        push_in = totext(token['value']).replace("\"", "\\\"")
 
-    def import_module(self, module_name):
-        load_module = self.is_module_exist(module_name)
-        if not load_module['result']:
-            return errors.ModuleDoesNotExist
-        self.imported_modules.append(load_module)
-        return load_module
+        return '{}({})'.format(
+            loadbase['c'],
+            '"{}"'.format(push_in)
+        )
+    
+    def basic_parse(self, lex):
+        action = ''
+        base_encode = {}
+        for token in lex['tokens']:
+            if token.startswith('ACTION:'):
+                action = token.split('ACTION:')[-1]
+                if action not in BASE:
+                    return UnknownCommand
+                base_encode['action'] = action
+                continue
+            if token.startswith('VAL:'):
+                value = token.split('VAL:')[-1]
+                base_encode['value'] = value
+                continue
 
-    def strip_list(self, _list):
-        for i, v in enumerate(_list):
-            if(type(v) == str):
-                _list[i] = str(v).rstrip().lstrip()
-        return _list
-
-    def command_regex_search(self, line):
-
-        if not re.search('\\(([^)]+)\\)', line):
-            return
-
-        if line == '':
-            line = ' '
-
-        elif(line.endswith('::()')):
-            line = line.replace('::()' , '')
-            self.add_to_output += '\\n'
-
-        elif(line.endswith(':()')):
-            line = line.replace(':()', '')
-            self.add_to_output += ' '
-
-        matches = re.findall('\\(([^)]+)\\)', line)
-        for index, m in enumerate(matches):
-            matches[index] = m.rstrip().lstrip()
-        del m
-
-        if(matches[0].startswith('[') and matches[0].endswith(']')):
-            try:
-                replace = False
-                funcname = convert.totext(matches[0].replace('[', '').replace(']', ''))
-                function_commands = self.functions[
-                    funcname
-                ]
-                if len(matches) > 1:
-                    params = [i.rstrip().lstrip() for i in matches[1].split(',')]
-                    if len(params) == len(self.function_params[funcname]):
-                        for in_call, in_define in zip(params, self.function_params[funcname]):
-                            replace = True
-                    else:
-                        return errors.MBSyntaxError
-                for function_line in function_commands[::-1]:
-                    self.data.insert(
-                        self.line_on_check+1,
-                        function_line if not replace else function_line.replace('[[{}]]'.format(str(in_define)), in_call)
-                    )
-                return
-            except:
-                return errors.MBSyntaxError
-
-        if matches[0] == '43':
-            _import = self.import_module(matches[1])
-            if _import == errors.ModuleDoesNotExist:
-                return errors.ModuleImportError
-            with open(_import['path'], 'r+') as module_data:
-                module_data = module_data.read()
-            after_import_index = self.data.index(line)+1
-            for line in module_data.splitlines()[::-1]:
-                self.data.insert(
-                    after_import_index,
-                    line
-                )
-            return
-
-        if '118:' in matches[0]:
-            to_define = matches[1]
-            if re.search('\[(.*?:.*?)\]', matches[1]):
-                matches_in_var = re.findall('\[(.*?:.*?)\]', matches[1])[0].split(':')
-                to_define = self.command_regex_search('({})=({})'.format(
-                    str(matches_in_var[0]).lstrip().rstrip(),
-                    str(matches_in_var[1]).lstrip().rstrip()
-                ))
-                to_define = ' ' if to_define == '' else to_define
-                to_define = convert.tomb(to_define)
-            return self.define(
-                matches[0].split(':(')[-1].rstrip().lstrip(),
-                to_define.lstrip().rstrip()
-            )
-
-        # Start Condition Checking
-
-        if('105 204:(' in matches[0]):
-            condition = matches[0].split(':(')[1]
-            is_true, condition_op = False, ''
-            for op in linematches.OPERATORS:
-                if op in condition:
-                    is_true = True
-                    condition_op = op
-                    continue
-            if not is_true:
-                return errors.MBSyntaxError
-            condition_split = self.strip_list(condition.split(condition_op))
-
-            cond_to_eval = []
-
-            for obj in condition_split:
-                if obj.startswith('[[') and obj.endswith(']]'):
-                    cvt = convert.totext(str(obj.replace('[[', '').replace(']]', '').rstrip().lstrip()))
-                    if(cvt in self.variables):
-                        cond_to_eval.append('"{}"'.format(self.variables[cvt]))
-                    else:
-                        return errors.UnDefineError
-                else:
-                    return errors.ConditionError
-            condition_lines = []
-            wait_to_close = 0
-            self.line_on_check += 1
-            try:
-                while True:
-                    if self.data[self.line_on_check].rstrip().lstrip() != '}':
-                        if '{' in self.data[self.line_on_check]:
-                            wait_to_close += 1
-                        self.line_on_check += 1
-                        condition_lines.append(self.data[self.line_on_check].rstrip().lstrip())
-                    else:
-                        if self.data[self.line_on_check].rstrip().lstrip() == '}' and wait_to_close >= 1:
-                            wait_to_close -= 1
-                            continue
-                        break
-            except:
-                return errors.MBSyntaxError
-            if eval(condition_op.join(cond_to_eval)):
-                for condition_line in condition_lines[::-1]:
-                    self.data.insert(
-                        self.line_on_check+1,
-                        condition_line
-                    )
-            del wait_to_close
-            return
-
-        # Start Function Checking
-        if '102:' in matches[0]:
-            if line.endswith('{'):
-                self.functions[convert.totext(matches[0].split(':(')[1])] = []
-                function_lines = []
-                wait_to_close = 0
-                self.line_on_check += 1
-                self.function_params[convert.totext(matches[0].split(':(')[1])] = []
-                if re.search('\[(.*?)\]', line):
-                    paramstoget = re.findall('\[(.*?)\]', line)[0]
-                    for param in paramstoget.split(','):
-                        if not param:
-                            continue
-                        self.function_params[convert.totext(matches[0].split(':(')[1])].append(
-                            param.rstrip().lstrip()
-                        )
-                try:
-                    while True:
-                        if self.data[self.line_on_check].rstrip().lstrip() != '}':
-                            if '{' in self.data[self.line_on_check]:
-                                wait_to_close += 1
-                            self.line_on_check += 1
-                            function_lines.append(self.data[self.line_on_check].rstrip().lstrip())
-                        else:
-                            if wait_to_close >= 1:
-                                wait_to_close -= 1
-                                continue
-                            break
-                except:
-                    return errors.MBSyntaxError
-                self.functions[
-                    convert.totext(matches[0].split(':(')[1])
-                ] = function_lines
-                return
-
-        stripped_firstmatch = matches[1].rstrip().lstrip()
-        if stripped_firstmatch.startswith('[[') and stripped_firstmatch.endswith(']]'):
-            matches_cache = matches[1].rstrip().lstrip()
-            matches[1] = convert.tomb(self.variables[convert.totext(
-                stripped_firstmatch.replace(']]', '').replace('[[', '').rstrip().lstrip()
-            )])
-            line = line.replace(matches_cache, matches[1])
-
-        code_info = linematches.get(matches[0])
-        if not code_info:
-            return errors.UnknownCommand
-
-        returnval = ''
-        exec('returnval = {}({}+"{}")'.format(
-            code_info['c'],
-            ', '.join(
-                [
-                    '"{}"'.format(i) for i in list([convert.totext(i) for i in [matches[int(i)] for i in code_info['argsfrommatches']]]+
-                    code_info['argvs']) # Custom argvs
-                ]+['{}={}'.format(i,j) for i,j in code_info['kwargs'].items()]
-            ),
-            self.add_to_output
-        ), globals(), self.exec_loc)
-        self.add_to_output = ''
-        return self.exec_loc['returnval']
-
-Program = Parser
+        return self.simple_parse_to_exec(base_encode)
