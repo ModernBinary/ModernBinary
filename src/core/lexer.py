@@ -17,6 +17,8 @@ class Lexer:
 
             self.is_first = True
 
+            self.ind = -1
+
             self.is_more = False
 
             self.pr_count = 0
@@ -31,11 +33,46 @@ class Lexer:
 
             self.line_cache = []
 
+            self.if_statement = False
+
+            self.condition = ''
+
+            self.on_if = ''
+
+            self.if_commands = False
+
         Reset()
 
         self.linenum = 1
 
         for char in self.data:
+            self.ind += 1
+
+            if self.if_commands:
+                if char != '}':
+                    self.on_if += char
+                else:
+                    complete = [i for i in Lexer(self.on_if.strip()).get_tokens(t='onlytoken')]
+                    iftoks = ['IF', self.condition, 'THEN', complete, 'ENDIF']
+                    TOKENS.append(iftoks)
+                    yield {
+                        'line': self.linenum,
+                        'endline': self.linenum+self.on_if.strip().count('\n'),
+                        'pr_count': self.pr_count,
+                        'tokens': iftoks
+                    }, self.linenum
+                    self.if_commands = False
+                    self.if_statement = False
+                continue
+
+
+            if self.if_statement:
+                if char != '{':
+                    self.condition += char.strip()
+                else:
+                    self.if_statement = False
+                    self.if_commands = True
+                continue
 
             if char == '[' or char == ']':
                 self.cr_state = True if char == '[' else False
@@ -76,6 +113,11 @@ class Lexer:
                 self.cache = ''
                 continue
 
+            if char == ":":
+                if self.ind == 0:
+                    self.if_statement = True
+                continue
+
             if char == '=':
                 self.is_more = True
                 continue
@@ -99,5 +141,7 @@ class Lexer:
             
             yield MBSyntaxError, {'line': self.linenum, 'char': char}
 
-    def get_tokens(self):
+    def get_tokens(self, t='all'):
+        if t == 'onlytoken':
+            return [i[0]['tokens'] for i in self.TOKENS if i[0]['tokens'] != []]
         return [i for i in self.TOKENS if i[0]['tokens'] != []]

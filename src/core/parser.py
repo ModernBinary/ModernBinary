@@ -1,6 +1,6 @@
 import sys
 from .lexer import Lexer
-from .linematches import BASE
+from .linematches import BASE, OPERATORS
 from .convert import tomb, totext
 from .errors import (
     MBSyntaxError, ConditionError, ModuleDoesNotExist,
@@ -34,7 +34,6 @@ class Parser:
                 if not self.DEBUG:
                     exec(r)
             except Exception as e:
-                raise e
                 self.show_error(MBSyntaxError, lex)
 
     def show_error(self, error_class, lexer_object):
@@ -53,6 +52,17 @@ class Parser:
         sys.exit(1)
 
     def simple_parse_to_exec(self, token, lex):
+        done = False
+        if 'condition' in token:
+            for i in token['torun']:
+                for op in OPERATORS:
+                    if op in token['condition']:
+                        done = True
+                        break
+                if not done:
+                    self.show_error(MBSyntaxError, lex)
+                if eval(token['condition']):
+                    exec(self.basic_parse({'line': token['line'], 'pr_count': 0, 'tokens': i }))
 
         if 'var' in token:
             self.varcache[token['var']] = token['value']
@@ -84,10 +94,35 @@ class Parser:
     
     def basic_parse(self, lex):
         action = ''
+        collecting_if = 0
         base_encode = {}
         if self.DEBUG:
             return lex
         for token in lex['tokens']:
+
+            if token == 'IF':
+                collecting_if = 1
+                continue
+
+            if collecting_if:
+                base_encode['line'], base_encode['endline'] = lex['line'], lex['endline']
+                if token == 'THEN':
+                    continue
+
+                if token == 'ENDIF' or collecting_if == 3:
+                    collecting_if = 0
+                    continue
+
+                if collecting_if == 1:
+                    base_encode['condition'] = token
+                    collecting_if = 2
+                    continue
+
+                if collecting_if == 2:
+                    base_encode['torun'] = token
+                    collecting_if = 3
+                    continue
+
             if token.startswith('ACTION:'):
                 action = token.split(':')[-1].strip()
                 if action not in BASE:
@@ -109,6 +144,7 @@ class Parser:
                 value = token.split('VAL:')[-1].strip()
                 base_encode['value'] = value
                 continue
+
 
 
         if base_encode != {}:
