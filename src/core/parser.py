@@ -64,7 +64,8 @@ class Parser:
             finally_push_in = ''
             if 'call' in token:
                 if 'value' in token:
-                    finally_push_in += totext(token['value']).replace("\"", "\\\"")
+                    if token['value']:
+                        finally_push_in += totext(token['value']).replace("\"", "\\\"")
                 if token['call'] in self.varcache:
                     push_in = totext(self.varcache[token['call']]).replace("\"", "\\\"")
             else:
@@ -88,24 +89,24 @@ class Parser:
             return lex
         for token in lex['tokens']:
             if token.startswith('ACTION:'):
-                action = token.split('ACTION:')[-1]
+                action = token.split(':')[-1].strip()
                 if action not in BASE:
                     return UnknownCommand
                 base_encode['action'] = action
                 continue
 
             if token.startswith('CALL:'):
-                value = token.split(':')[-1]
+                value = token.split(':')[-1].strip()
                 base_encode['call'] = value
                 continue
 
             if token.startswith('VAR:'):
-                var_name = token.split(':')[-1]
+                var_name = token.split(':')[-1].strip()
                 base_encode['var'] = var_name
                 continue
 
             if token.startswith('VAL:'):
-                value = token.split('VAL:')[-1]
+                value = token.split('VAL:')[-1].strip()
                 base_encode['value'] = value
                 continue
 

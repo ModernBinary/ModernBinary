@@ -49,7 +49,7 @@ class Lexer:
                     if self.is_first:
                         self.is_first = False
                         self.cache = 'VAR:'+self.cache
-                    self.line_cache.append(self.cache)
+                    self.line_cache.append(self.cache.strip())
                     self.cr_count += 1
                     self.collect_type = ''
                 else:
@@ -68,7 +68,7 @@ class Lexer:
                     if self.is_first:
                         self.is_first = False
                         self.cache = 'ACTION:'+self.cache
-                    self.line_cache.append(self.cache)
+                    self.line_cache.append(self.cache.strip())
                     self.pr_count += 1
                     self.collect_type = ''
                 else:
