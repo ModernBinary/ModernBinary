@@ -10,19 +10,31 @@ from .errors import (
 
 class Parser:
     def __init__(self, file_name) -> None:
+
+        self.DEBUG = False
+
+        self.varcache = {}
+
         self.file_name = file_name
         with open(file_name, 'r+') as file:
             self.data = file.read()
         
         self.lexer = Lexer(self.data)
 
-        for lex in self.lexer.get_tokens():
+        for lex, argv in self.lexer.get_tokens():
+            if 'errors.' in str(lex):
+                lex.description = 'Invalid syntax : '+argv['char']
+                self.show_error(lex, argv)
             try:
                 r = self.basic_parse(lex)
+                if self.DEBUG:
+                    print(r)
                 if 'errors.' in str(r):
                     self.show_error(r, lex)
-                exec(r)
+                if not self.DEBUG:
+                    exec(r)
             except Exception as e:
+                raise e
                 self.show_error(MBSyntaxError, lex)
 
     def show_error(self, error_class, lexer_object):
@@ -40,18 +52,40 @@ class Parser:
         print(text)
         sys.exit(1)
 
-    def simple_parse_to_exec(self, token):
-        loadbase = BASE[token['action']]
-        push_in = totext(token['value']).replace("\"", "\\\"")
+    def simple_parse_to_exec(self, token, lex):
 
-        return '{}({})'.format(
-            loadbase['c'],
-            '"{}"'.format(push_in)
-        )
+        if 'var' in token:
+            self.varcache[token['var']] = token['value']
+            return ''
+
+        if 'action' in token:
+            loadbase = BASE[token['action']]
+            push_in = ''
+            finally_push_in = ''
+            if 'call' in token:
+                if 'value' in token:
+                    finally_push_in += totext(token['value']).replace("\"", "\\\"")
+                if token['call'] in self.varcache:
+                    push_in = totext(self.varcache[token['call']]).replace("\"", "\\\"")
+            else:
+                push_in = totext(token['value']).replace("\"", "\\\"")
+
+            push_in += finally_push_in
+
+            return '{}({})'.format(
+                loadbase['c'],
+                '"{}"'.format(push_in)
+            )
+        
+
+        return ''
+
     
     def basic_parse(self, lex):
         action = ''
         base_encode = {}
+        if self.DEBUG:
+            return lex
         for token in lex['tokens']:
             if token.startswith('ACTION:'):
                 action = token.split('ACTION:')[-1]
@@ -59,9 +93,23 @@ class Parser:
                     return UnknownCommand
                 base_encode['action'] = action
                 continue
+
+            if token.startswith('CALL:'):
+                value = token.split(':')[-1]
+                base_encode['call'] = value
+                continue
+
+            if token.startswith('VAR:'):
+                var_name = token.split(':')[-1]
+                base_encode['var'] = var_name
+                continue
+
             if token.startswith('VAL:'):
                 value = token.split('VAL:')[-1]
                 base_encode['value'] = value
                 continue
 
-        return self.simple_parse_to_exec(base_encode)
+
+        if base_encode != {}:
+            return self.simple_parse_to_exec(base_encode, lex)
+        return ''
