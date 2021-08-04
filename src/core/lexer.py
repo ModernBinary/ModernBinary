@@ -1,14 +1,48 @@
+from os import error
 import sys
-
-from core.errors import MBSyntaxError
+from core.linematches import OPERATORS
+from core.errors import MBSyntaxError,UnknownCommand
 
 class Lexer:
-    def __init__(self, data) -> None:
+    def __init__(self, data, file_name='<stdin>', lextype='loadtoken') -> None:
 
-        self.data = data+'\n'
+        self.file_name = file_name
+
+        self.lex_type = lextype
+
+        self.data = data+('\n' if lextype != 'condition' else '')
         
-        self.TOKENS = self.Load_Tokens()
-        
+        if lextype == 'loadtoken':
+            self.TOKENS = self.Load_Tokens()
+        elif lextype == 'condition':
+            self.TOKENS = self.Load_Condition()
+    
+    def Load_Condition(self):
+        TOKENS =  []
+        cache = ''
+        meta = {}
+        for i in self.data:
+
+            if cache in OPERATORS:
+                TOKENS.append(cache)
+                cache = ''
+                continue
+
+            if i == '[':
+                meta['state'] = True
+                cache = ''
+                continue
+
+            if i == ']':
+                meta['state'] = False
+                TOKENS.append('VAR:'+cache)
+                cache = ''
+                continue
+
+            cache += i
+
+        return TOKENS
+
     def Load_Tokens(self):
         TOKENS = []
 
@@ -52,12 +86,13 @@ class Lexer:
                 if char != '}':
                     self.on_if += char
                 else:
-                    complete = [i for i in Lexer(self.on_if.strip()).get_tokens(t='onlytoken')]
+                    self.on_if = '\n'.join([i.strip() for i in self.on_if.splitlines()])
+                    complete = [i for i in Lexer(self.on_if).get_tokens(t='onlytoken')]
                     iftoks = ['IF', self.condition, 'THEN', complete, 'ENDIF']
                     TOKENS.append(iftoks)
                     yield {
                         'line': self.linenum,
-                        'endline': self.linenum+self.on_if.strip().count('\n'),
+                        'endline': self.linenum+self.on_if.count('\n'),
                         'pr_count': self.pr_count,
                         'tokens': iftoks
                     }, self.linenum
@@ -139,9 +174,28 @@ class Lexer:
                 self.cache += char
                 continue
             
-            yield MBSyntaxError, {'line': self.linenum, 'char': char}
+            error_class = MBSyntaxError
+            error_class.description = 'invalid syntax : \x1b[31m'+self.data.splitlines()[self.linenum-1]+'\x1b[0m'
+            self.show_error(error_class, {'line': self.linenum, 'char': char})
+
+    def show_error(self, error_class, lexer_object):
+        text = '[ERROR] File "{}", line {}'.format(
+            self.file_name,
+            lexer_object['line']
+        )
+        if error_class == UnknownCommand:
+            action = lexer_object['tokens'][0].split(':')[-1]
+            error_class.description = action+' is not defined'
+        text += '\n{}: {}'.format(
+            str(error_class.__name__),
+            error_class.description
+        )
+        print(text)
+        sys.exit(1)
 
     def get_tokens(self, t='all'):
         if t == 'onlytoken':
             return [i[0]['tokens'] for i in self.TOKENS if i[0]['tokens'] != []]
+        if self.lex_type == 'condition':
+            return self.TOKENS
         return [i for i in self.TOKENS if i[0]['tokens'] != []]

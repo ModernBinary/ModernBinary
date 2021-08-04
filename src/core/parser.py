@@ -1,3 +1,5 @@
+import string
+from os import error
 import sys
 from .lexer import Lexer
 from .linematches import BASE, OPERATORS
@@ -19,7 +21,7 @@ class Parser:
         with open(file_name, 'r+') as file:
             self.data = file.read()
         
-        self.lexer = Lexer(self.data)
+        self.lexer = Lexer(self.data, file_name=self.file_name)
 
         for lex, argv in self.lexer.get_tokens():
             if 'errors.' in str(lex):
@@ -34,7 +36,9 @@ class Parser:
                 if not self.DEBUG:
                     exec(r)
             except Exception as e:
-                self.show_error(MBSyntaxError, lex)
+                error_class = MBSyntaxError
+                error_class.description = 'unexpected EOF while parsing'
+                self.show_error(error_class, lex)
 
     def show_error(self, error_class, lexer_object):
         text = '[ERROR] File "{}", line {}'.format(
@@ -53,14 +57,32 @@ class Parser:
 
     def simple_parse_to_exec(self, token, lex):
         done = False
+        error_class = MBSyntaxError
         if 'condition' in token:
+            for condition_char in token['condition']:
+                if condition_char in string.ascii_lowercase:
+                    error_class = MBSyntaxError
+                    error_class.description = 'unexpected EOF while parsing'
+                    self.show_error(error_class, lex)
+
             for i in token['torun']:
                 for op in OPERATORS:
                     if op in token['condition']:
                         done = True
                         break
                 if not done:
-                    self.show_error(MBSyntaxError, lex)
+                    error_class.description = 'Unknown operator used in condition : '+token['condition']
+                    self.show_error(error_class, lex)
+                if '[' in token['condition'] and ']' in token['condition']:
+                    lex_condition = Lexer(token['condition'], lextype='condition', file_name=self.file_name).get_tokens()
+                    for tok in lex_condition:
+                        if tok.startswith('VAR'):
+                            var = tok.split(':')[1]
+                            if var in self.varcache:
+                                token['condition'] = token['condition'].replace('[{}]'.format(var), self.varcache[var])
+                            else:
+                                error_class.description = 'Undefined variable used in condition : '+'[{}]'.format(var)
+                                self.show_error(error_class, lex)
                 if eval(token['condition']):
                     exec(self.basic_parse({'line': token['line'], 'pr_count': 0, 'tokens': i }))
 
@@ -144,8 +166,6 @@ class Parser:
                 value = token.split('VAL:')[-1].strip()
                 base_encode['value'] = value
                 continue
-
-
 
         if base_encode != {}:
             return self.simple_parse_to_exec(base_encode, lex)
