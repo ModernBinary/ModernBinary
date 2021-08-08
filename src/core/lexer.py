@@ -71,7 +71,7 @@ class Lexer:
 
             self.condition = ''
 
-            self.on_if = ''
+            self.on_if = {}
 
             self.if_commands = False
 
@@ -83,16 +83,18 @@ class Lexer:
             self.ind += 1
 
             if self.if_commands:
+                if self.condition not in self.on_if:
+                    self.on_if[self.condition] = ''
                 if char != '}':
-                    self.on_if += char
+                    self.on_if[self.condition] += char
                 else:
-                    self.on_if = '\n'.join([i.strip() for i in self.on_if.splitlines()])
-                    complete = [i for i in Lexer(self.on_if).get_tokens(t='onlytoken')]
+                    self.on_if[self.condition] = '\n'.join([i.strip() for i in self.on_if[self.condition].splitlines()])
+                    complete = [i for i in Lexer(self.on_if[self.condition]).get_tokens(t='onlytoken')]
                     iftoks = ['IF', self.condition, 'THEN', complete, 'ENDIF']
                     TOKENS.append(iftoks)
                     yield {
                         'line': self.linenum,
-                        'endline': self.linenum+self.on_if.count('\n'),
+                        'endline': self.linenum+self.on_if[self.condition].count('\n'),
                         'pr_count': self.pr_count,
                         'tokens': iftoks
                     }, self.linenum

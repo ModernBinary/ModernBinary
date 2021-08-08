@@ -2,6 +2,5 @@
 * text=auto
 *.mb linguist-language=Batchfile
 # Set base of language in future
-*.cpp linguist-language=python
-*.py linguist-language=C++
+*.cpp linguist-language=C++
 *.h linguist-language=C++

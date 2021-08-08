@@ -19,7 +19,12 @@ BASE = {
         'c': 'input',
         'argvs':[],
         'kwargs':{}
-        }
+        },
+    '99': {
+        'c': 'len',
+        'argvs':[],
+        'kwargs':{}
+    }
 }
 
 def get(code):
