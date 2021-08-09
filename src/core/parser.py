@@ -17,13 +17,18 @@ class Parser:
 
         self.varcache = {}
 
+        self.funccache = {}
+
         self.file_name = file_name
         with open(file_name, 'r+') as file:
             self.data = file.read()
         
         self.lexer = Lexer(self.data, file_name=self.file_name)
 
-        for lex, argv in self.lexer.get_tokens():
+        self.run_lex(self.lexer.get_tokens())
+
+    def run_lex(self, lex):
+        for lex, argv in lex:
             if 'errors.' in str(lex):
                 lex.description = 'Invalid syntax : '+argv['char']
                 self.show_error(lex, argv)
@@ -58,6 +63,12 @@ class Parser:
     def simple_parse_to_exec(self, token, lex):
         done = False
         error_class = MBSyntaxError
+
+        if 'function' in token:
+            lex_function = Lexer(token['codes'], '<function:{}>'.format(token['function'])).get_tokens()
+            self.funccache[token['function']] = lex_function
+            return ''
+        
         if 'condition' in token:
             for condition_char in token['condition']:
                 if condition_char in string.ascii_lowercase:
@@ -71,8 +82,11 @@ class Parser:
                         done = True
                         break
                 if not done:
-                    error_class.description = 'Unknown operator used in condition : '+token['condition']
-                    self.show_error(error_class, lex)
+                    try:
+                        eval(str(token['condition']))
+                    except:
+                        error_class.description = 'Unknown operator used in condition : '+token['condition']
+                        self.show_error(error_class, lex)
                 if '[' in token['condition'] and ']' in token['condition']:
                     lex_condition = Lexer(token['condition'], lextype='condition', file_name=self.file_name).get_tokens()
                     for tok in lex_condition:
@@ -116,11 +130,35 @@ class Parser:
     
     def basic_parse(self, lex):
         action = ''
-        collecting_if = 0
+        collecting_if = collecting_func = 0
         base_encode = {}
         if self.DEBUG:
             return lex
         for token in lex['tokens']:
+
+            if token == 'FUNC':
+                collecting_func = 1
+                continue
+
+            if collecting_func:
+
+                if collecting_func == 1:
+                    base_encode['function'] = token
+                    collecting_func = 2
+                    continue
+
+                elif collecting_func == 2:
+                    collecting_func = 3
+                    continue
+
+                elif collecting_func == 3:
+                    base_encode['codes'] = token
+                    collecting_func = 4
+                    continue
+
+                elif collecting_func == 4:
+                    collecting_func = 0
+                    continue
 
             if token == 'IF':
                 collecting_if = 1
