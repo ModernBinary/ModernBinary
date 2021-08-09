@@ -79,8 +79,47 @@ class Lexer:
 
         self.linenum = 1
 
+        self.function_meta = {
+            'open': False,
+            'collect': False,
+            'name': '',
+            'state': False,
+            'todo': ''
+        }
+
         for char in self.data:
             self.ind += 1
+
+            if char == '*':
+                self.function_meta['open'] = True if not self.function_meta['open'] else False
+                if not self.function_meta['open']:
+                    self.function_meta['collect'] = True
+                continue
+
+            if self.function_meta['open']:
+                self.function_meta['name'] += char
+                continue
+
+            if self.function_meta['collect']:
+
+                if char == '{' or char == '}':
+                    self.function_meta['state'] = True if not self.function_meta['state'] else False
+                    if not self.function_meta['state']:
+                        self.function_meta['collect'] = False
+                        self.function_meta['open'] = False
+                        self.function_meta['todo'] = self.function_meta['todo']
+                        yield {
+                            'line': self.linenum,
+                            'pr_count': self.pr_count,
+                            'tokens': ['FUNC', self.function_meta['name'], 'THEN', self.function_meta['todo'],'END']
+                        }, self.linenum
+                    continue
+                        
+                if self.function_meta['state']:
+                    self.function_meta['todo'] += char
+                    continue
+
+                continue
 
             if self.if_commands:
                 if self.condition not in self.on_if:
@@ -176,12 +215,15 @@ class Lexer:
                 self.cache += char
                 continue
             
+            if char == ' ':
+                continue
+
             error_class = MBSyntaxError
-            error_class.description = 'invalid syntax : \x1b[31m'+self.data.splitlines()[self.linenum-1]+'\x1b[0m'
+            error_class.description = 'Invalid syntax : \x1b[31m'+self.data.splitlines()[self.linenum-1]+'\x1b[0m'
             self.show_error(error_class, {'line': self.linenum, 'char': char})
 
     def show_error(self, error_class, lexer_object):
-        text = '[ERROR] File "{}", line {}'.format(
+        text = '[ERROR] "{}", line {}'.format(
             self.file_name,
             lexer_object['line']
         )
