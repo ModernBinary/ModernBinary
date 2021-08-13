@@ -1,5 +1,6 @@
 from os import error
 import sys
+import string
 from core.linematches import OPERATORS
 from core.errors import MBSyntaxError,UnknownCommand
 
@@ -46,6 +47,8 @@ class Lexer:
     def Load_Tokens(self):
         TOKENS = []
 
+        self.public_ind = -1
+
         def Reset():
             self.cache = ''
 
@@ -89,6 +92,26 @@ class Lexer:
 
         for char in self.data:
             self.ind += 1
+            self.public_ind += 1
+
+            if char == '[' and not self.function_meta['state']:
+                if self.data[self.public_ind+1] == '*':
+                    counter, call_object = 1, ''
+                    while self.data[self.public_ind+counter] != ']':
+                        counter += 1
+                        if self.data[self.public_ind+counter] not in ['*', '[', ']']:
+                            call_object += self.data[self.public_ind+counter]
+                        if self.data[self.public_ind+counter] == '\n':
+                            error_class = MBSyntaxError
+                            error_class.description = 'unexpected EOF while parsing'
+                            self.show_error(error_class, {'line': self.linenum, 'char': char})
+                    else:
+                        yield {
+                            'line': self.linenum,
+                            'pr_count': self.pr_count,
+                            'tokens': ['PUBLIC_CALL:'+str(call_object)]
+                        }, self.linenum
+                    continue
 
             if char == '*':
                 self.function_meta['open'] = True if not self.function_meta['open'] else False
@@ -113,6 +136,8 @@ class Lexer:
                             'pr_count': self.pr_count,
                             'tokens': ['FUNC', self.function_meta['name'], 'THEN', self.function_meta['todo'],'END']
                         }, self.linenum
+                        self.function_meta['name'] = ''
+                        self.function_meta['todo'] = ''
                     continue
                         
                 if self.function_meta['state']:

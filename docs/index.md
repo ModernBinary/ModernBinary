@@ -11,3 +11,4 @@
 * [Getting Started](https://modernbinary.github.io/ModernBinary/get-started)
 * [Calculate and convert characters in modern binary](https://modernbinary.github.io/ModernBinary/translate)
 * [Defining a variable](https://modernbinary.github.io/ModernBinary/define-variable)
+* [Defining functions](https://modernbinary.github.io/ModernBinary/defining-functions)

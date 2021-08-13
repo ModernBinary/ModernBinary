@@ -64,6 +64,15 @@ class Parser:
         done = False
         error_class = MBSyntaxError
 
+        if 'public_call' in token:
+            if token['public_call'] in self.funccache:
+                self.run_lex(self.funccache[token['public_call']])
+            else:
+                error_class = UnDefineError
+                error_class.description = 'public name {} is not defined'.format(token['public_call'])
+                self.show_error(error_class, lex)
+            return ''
+
         if 'function' in token:
             lex_function = Lexer(token['codes'], '<function:{}>'.format(token['function'])).get_tokens()
             self.funccache[token['function']] = lex_function
@@ -195,6 +204,11 @@ class Parser:
                 base_encode['call'] = value
                 continue
 
+            if token.startswith('PUBLIC_CALL:'):
+                value = token.split(':')[-1].strip()
+                base_encode['public_call'] = value
+                continue
+            
             if token.startswith('VAR:'):
                 var_name = token.split(':')[-1].strip()
                 base_encode['var'] = var_name
