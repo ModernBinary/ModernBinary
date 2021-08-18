@@ -87,7 +87,8 @@ class Lexer:
             'collect': False,
             'name': '',
             'state': False,
-            'todo': ''
+            'todo': '',
+            'nocollect': 0
         }
 
         for char in self.data:
@@ -125,7 +126,14 @@ class Lexer:
 
             if self.function_meta['collect']:
 
-                if char == '{' or char == '}':
+                if char in ['{', '}']:
+                    if self.function_meta['state'] and char == '{':
+                        self.function_meta['nocollect'] += 1
+                        continue
+                    if self.function_meta['state'] and char == '}':
+                        if self.function_meta['nocollect'] >= 1:
+                            self.function_meta['nocollect'] -= 1
+                            continue
                     self.function_meta['state'] = True if not self.function_meta['state'] else False
                     if not self.function_meta['state']:
                         self.function_meta['collect'] = False
@@ -171,11 +179,10 @@ class Lexer:
                 if char != '{':
                     self.condition += char.strip()
                 else:
-                    self.if_statement = False
-                    self.if_commands = True
+                    self.if_statement, self.if_commands = False, True
                 continue
 
-            if char == '[' or char == ']':
+            if char in ['[', ']']:
                 self.cr_state = True if char == '[' else False
 
                 tag_name = 'VAL' if not self.pr_state else 'CALL'
@@ -195,7 +202,7 @@ class Lexer:
                 self.cache = ''
                 continue
 
-            if char == '(' or char == ')':
+            if char in ['(', ')']:
                 self.pr_state = True if char == '(' else False
                 tag_name = 'VAL' if not self.cr_state else 'CALL'
 
