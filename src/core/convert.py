@@ -1,15 +1,9 @@
 def tomb(text):
     if not text:
         return
-    text = text.strip()
-    base = [ord(i) for i in text]
-    base2 = [j*(i+1) for i, j in enumerate(base)]
-    return ' '.join([str(i) for i in base2])
+    return ' '.join([str(i) for i in [j*(i+1) for i, j in enumerate([ord(i) for i in text.strip()])]])
 
 def totext(text):
     if not text:
         return
-    text = text.strip()
-    text = text.split(' ')
-    base = [int(int(j)/(index+1)) for index, j in enumerate(text)]
-    return ''.join([chr(i) for i in base])
+    return ''.join([chr(i) for i in [int(int(j)/(index+1)) for index, j in enumerate(text.strip().split(' '))]])
