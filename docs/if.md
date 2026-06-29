@@ -30,13 +30,13 @@ One of the modern binary rules right now is that you can not place multiple cond
 ### Example :
 * Let's create two variables `X` and `Y` with common `text` values and put them equal in the condition. If this condition is met, the phrase `True` will be printed.
 ```shell
-[120]=( 116 202 360 464 )
+[1111000]=( 1110100 11001010 101101000 111010000 )
 
-[121]=( 116 202 360 464 )
+[1111001]=( 1110100 11001010 101101000 111010000 )
 
-: [120] == [121] {
+: [1111000] == [1111001] {
 
-    (112)=( 84 228 351 404 )
+    (1110000)=( 1010100 11100100 101011111 110010100 )
 
 }
 ```

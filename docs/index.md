@@ -13,3 +13,5 @@
 * [Defining a variable](https://modernbinary.github.io/ModernBinary/define-variable)
 * [Defining functions](https://modernbinary.github.io/ModernBinary/defining-functions)
 * [IF / Condition](https://modernbinary.github.io/ModernBinary/if)
+* [While Loop](https://modernbinary.github.io/ModernBinary/while)
+* [For Loop](https://modernbinary.github.io/ModernBinary/for)

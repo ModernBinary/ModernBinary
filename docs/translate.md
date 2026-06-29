@@ -20,19 +20,19 @@ l ==> 108
 l ==> 108
 o ==> 111
 ```
-* As a result -> ``104 101 108 108 111``
+* As a result -> ``1101000 1100101 1101100 1101100 1101111``
 
 Then we have to multiply each number by the index number of that number. ``(Note: Indexes start at 1, because if they start at 0, the first number is 0)``
 
 #### Example :
 
 ```bat
-104 * 1 = 104 
-101 * 2 = 202
-108 * 3 = 324
-108 * 4 = 432
-111 * 5 = 555
+1101000 * 1 = 1101000
+1100101 * 10 = 11001010
+1101100 * 11 = 101000100
+1101100 * 100 = 110110000
+1101111 * 101 = 1000101011
 ```
-* As a result -> ``104 202 324 432 555``
+* As a result -> ``1101000 11001010 101000100 110110000 1000101011``
 
 ***You now have a phrase in modern binary language and can use it in your code!***
